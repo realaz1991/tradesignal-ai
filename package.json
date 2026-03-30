@@ -1,0 +1,17 @@
+{
+  "name": "tradesignal-backend",
+  "version": "1.0.0",
+  "description": "TradeSignal AI — OOP Backend",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "node-fetch": "^3.3.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1"
+  }
+}

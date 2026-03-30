@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10d88e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TradeSignal">
+<link rel="manifest" href="/manifest.json">
+<title>TradeSignal AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap');
+:root{
+  --bg:#0a0c10;--bg2:#111318;--bg3:#1a1d24;--bg4:#22262f;
+  --b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.13);
+  --tx:#e8eaf0;--mu:#6b7280;--di:#9ca3af;
+  --g:#10d88e;--gb:rgba(16,216,142,.12);
+  --r:#f5475b;--rb:rgba(245,71,91,.12);
+  --a:#f59e0b;--ab:rgba(245,158,11,.10);
+  --bl:#4f8ef7;--blb:rgba(79,142,247,.10);
+  --pu:#a78bfa;
+  --fn:'Syne',sans-serif;--mo:'DM Mono',monospace;
+  --rad:10px;--radl:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:var(--fn)}
+#top{display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid var(--b);background:var(--bg);flex-shrink:0;z-index:50}
+.logo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;margin-right:6px;white-space:nowrap}
+.logo-m{width:28px;height:28px;border-radius:7px;background:var(--g);display:flex;align-items:center;justify-content:center;font-size:13px}
+.logo span{color:var(--g)}
+.pill{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;background:var(--bg3);border:1px solid var(--b);font-size:11px;font-family:var(--mo);color:var(--di)}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot.g{background:var(--g);box-shadow:0 0 5px var(--g);animation:pu 2s infinite}
+.dot.r{background:var(--r)}.dot.a{background:var(--a)}.dot.mu{background:var(--mu)}
+@keyframes pu{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+#topr{display:flex;align-items:center;gap:7px;margin-left:auto}
+.btn{padding:6px 13px;border-radius:8px;border:1px solid var(--b2);background:var(--bg3);color:var(--tx);cursor:pointer;font-family:var(--fn);font-size:12px;font-weight:500;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg4)}.btn.pri{background:var(--g);color:#000;border-color:var(--g);font-weight:700}
+.btn.pri:hover{background:#0ec47e}
+#lay{display:grid;grid-template-columns:255px 1fr 310px;height:calc(100vh - 49px);overflow:hidden}
+#sb{border-right:1px solid var(--b);overflow-y:auto;padding:10px 9px}
+.slbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);padding:6px 7px 4px}
+.ac{padding:8px 9px;border-radius:var(--rad);cursor:pointer;border:1px solid transparent;transition:all .15s;margin-bottom:2px}
+.ac:hover{background:var(--bg3)}.ac.on{background:var(--bg3);border-color:var(--b2)}
+.act{display:flex;align-items:center;justify-content:space-between}
+.acl{display:flex;align-items:center;gap:7px}
+.aco{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;font-family:var(--mo);flex-shrink:0}
+.acs{font-size:12px;font-weight:700}.acf{font-size:10px;color:var(--mu);margin-top:1px}
+.acp{font-family:var(--mo);font-size:12px;font-weight:500;text-align:right}
+.acc{font-family:var(--mo);font-size:10px;margin-top:1px;text-align:right}
+.acb{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+.up{color:var(--g)}.dn{color:var(--r)}.ne{color:var(--mu)}
+.bx{font-size:9px;font-weight:600;padding:2px 5px;border-radius:4px;font-family:var(--mo);display:inline-block}
+.bx.sbuy{background:var(--g);color:#000}.bx.buy{background:var(--gb);color:var(--g)}
+.bx.ssell{background:var(--r);color:#fff}.bx.sell{background:var(--rb);color:var(--r)}
+.bx.wait{background:rgba(107,114,128,.15);color:var(--mu)}.bx.bl{background:var(--blb);color:var(--bl)}
+.div{height:1px;background:var(--b);margin:6px 0}
+#ctr{overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:11px}
+.chhd{display:flex;align-items:flex-start;justify-content:space-between}
+.chnm{font-size:20px;font-weight:700}
+.chpr{font-size:22px;font-weight:700;font-family:var(--mo);margin-top:2px}
+.chmt{font-size:11px;color:var(--mu);margin-top:2px;font-family:var(--mo)}
+.tfr{display:flex;gap:3px;background:var(--bg3);padding:3px;border-radius:9px}
+.tf{padding:5px 10px;border-radius:7px;font-size:11px;font-weight:600;font-family:var(--mo);cursor:pointer;color:var(--mu);transition:all .15s;border:none;background:none}
+.tf.on,.tf:hover{background:var(--bg2);color:var(--tx)}
+.cw{background:var(--bg2);border:1px solid var(--b);border-radius:var(--radl);overflow:hidden}
+.clbl{font-size:10px;font-family:var(--mo);color:var(--mu);letter-spacing:.04em;padding:7px 11px 0}
+.ir{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.ib{background:var(--bg2);border:1px solid var(--b);border-radius:var(--rad);padding:11px 13px}
+.il{font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.iv{font-family:var(--mo);font-size:18px;font-weight:500}
+.ibar{height:3px;background:var(--bg3);border-radius:2px;margin-top:7px;overflow:hidden}
+.ifill{height:100%;border-radius:2px;transition:width .5s}
+.ino{font-size:10px;color:var(--mu);margin-top:4px}
+.sb2{border-radius:var(--radl);padding:14px 16px;border:1px solid;display:flex;align-items:center;gap:13px;transition:all .3s}
+.sb2.sbuy{background:rgba(16,216,142,.07);border-color:var(--g)}
+.sb2.buy{background:var(--gb);border-color:rgba(16,216,142,.3)}
+.sb2.ssell{background:rgba(245,71,91,.07);border-color:var(--r)}
+.sb2.sell{background:var(--rb);border-color:rgba(245,71,91,.3)}
+.sb2.wait{background:rgba(107,114,128,.07);border-color:var(--b)}
+.si{font-size:26px;flex-shrink:0}.sm{font-size:15px;font-weight:700}
+.sd{font-size:11px;color:var(--di);margin-top:3px;line-height:1.5}
+.sa{margin-left:auto;text-align:right;flex-shrink:0}
+.sal{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:.06em}
+.sav{font-size:11px;font-weight:600;padding:3px 8px;border-radius:5px;display:inline-block;margin-top:2px}
+.aok{background:var(--gb);color:var(--g)}.awk{background:var(--ab);color:var(--a)}.ano{background:var(--rb);color:var(--r)}
+.mt{background:var(--bg2);border:1px solid var(--b);border-radius:var(--radl);overflow:hidden}
+.mth{display:grid;grid-template-columns:72px repeat(6,1fr);background:var(--bg3);padding:7px 12px;font-size:10px;font-weight:600;color:var(--mu);letter-spacing:.05em;text-transform:uppercase}
+.mtr{display:grid;grid-template-columns:72px repeat(6,1fr);padding:8px 12px;border-top:1px solid var(--b);align-items:center;font-size:11px}
+.mti{font-weight:600;font-size:11px}
+.sbox{background:var(--bg2);border:1px solid var(--b);border-radius:var(--radl);padding:13px 15px}
+.stit{font-size:13px;font-weight:600;margin-bottom:11px}
+.srow{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.srow input,.srow select{background:var(--bg3);border:1px solid var(--b2);color:var(--tx);border-radius:8px;padding:6px 10px;font-family:var(--fn);font-size:12px;outline:none}
+.srow input[type=time]{font-family:var(--mo)}
+#allist{margin-top:9px;display:flex;flex-direction:column;gap:5px}
+.alitem{background:var(--bg3);border:1px solid var(--b);border-radius:9px;padding:7px 11px;display:flex;align-items:center;gap:8px;font-size:11px}
+.aldot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.alinf{flex:1}.alp{font-weight:700;font-size:11px}.aldc{color:var(--mu);margin-top:1px}
+.altm{font-family:var(--mo);color:var(--mu);font-size:11px}
+.altog{width:30px;height:17px;border-radius:9px;border:none;background:var(--g);cursor:pointer;position:relative;flex-shrink:0;transition:background .2s}
+.altog::after{content:'';position:absolute;width:11px;height:11px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s}
+.altog.off{background:var(--bg4);border:1px solid var(--b2)}.altog.off::after{transform:translateX(13px)}
+.dbtn{background:none;border:none;color:var(--r);cursor:pointer;font-size:12px;padding:2px 4px}
+#rp{border-left:1px solid var(--b);overflow-y:auto;padding:11px 13px;display:flex;flex-direction:column;gap:9px}
+.rt{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);padding:2px 0 6px;border-bottom:1px solid var(--b);margin-bottom:2px}
+.acard{background:var(--bg2);border:1px solid var(--b);border-radius:var(--rad);padding:11px}
+.acard-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.acard-t{font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px}
+.aibl{width:5px;height:5px;border-radius:50%;background:var(--pu);animation:pu 2s infinite}
+.aitx{font-size:11px;line-height:1.6;color:var(--di)}.aitx strong{color:var(--tx);font-weight:600}
+.aisc{display:flex;align-items:center;justify-content:space-between;margin-top:7px;padding-top:7px;border-top:1px solid var(--b)}
+.sbar{height:3px;background:var(--bg3);border-radius:2px;margin-top:4px;width:130px;overflow:hidden}
+.sfill{height:100%;background:linear-gradient(90deg,var(--r),var(--a) 50%,var(--g));transition:width .6s}
+.sv{font-family:var(--mo);font-size:17px;font-weight:500}
+.ni{padding:7px 0;border-bottom:1px solid var(--b)}.ni:last-child{border-bottom:none}
+.nt{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.ns{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--mu)}
+.ntm{font-size:10px;color:var(--mu);font-family:var(--mo)}
+.nim{font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:auto}
+.imh{background:var(--rb);color:var(--r)}.imm{background:var(--ab);color:var(--a)}.iml{background:var(--blb);color:var(--bl)}
+.nh{font-size:11px;line-height:1.5;color:var(--di)}.nh strong{color:var(--tx)}
+.pbn{background:var(--blb);border:1px solid rgba(79,142,247,.2);border-radius:var(--rad);padding:9px 11px;display:flex;align-items:center;gap:9px;font-size:11px;color:var(--di)}
+.pbn strong{color:var(--bl)}.pbn.hi{display:none}
+#tos{position:fixed;top:62px;right:14px;z-index:999;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.tos{background:var(--bg2);border:1px solid var(--b2);border-radius:var(--radl);padding:11px 13px;min-width:270px;max-width:330px;box-shadow:0 6px 24px rgba(0,0,0,.5);display:flex;align-items:flex-start;gap:9px;pointer-events:all;animation:ti .25s ease}
+@keyframes ti{from{transform:translateX(18px);opacity:0}to{transform:none;opacity:1}}
+.tos.buy{border-left:3px solid var(--g)}.tos.sell{border-left:3px solid var(--r)}
+.tos.warn{border-left:3px solid var(--a)}.tos.info{border-left:3px solid var(--bl)}.tos.ok{border-left:3px solid var(--g)}
+.ti2{font-size:15px;flex-shrink:0;margin-top:1px}.tt{font-size:12px;font-weight:700;margin-bottom:2px}
+.tb{font-size:11px;color:var(--di);line-height:1.5}
+.tc{margin-left:auto;font-size:13px;cursor:pointer;color:var(--mu);flex-shrink:0;background:none;border:none;padding:2px}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid var(--b2);border-top-color:var(--pu);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+#ws-status{font-size:10px;color:var(--mu);font-family:var(--mo)}
+</style>
+</head>
+<body>
+<div id="top">
+  <div class="logo"><div class="logo-m">📈</div>Trade<span>Signal</span> AI</div>
+  <div class="pill"><div class="dot mu" id="wsdot"></div><span id="wstx">Bağlanıyor...</span></div>
+  <div class="pill"><div class="dot g"></div><span id="clk">--:--:--</span></div>
+  <div id="topr">
+    <button class="btn" id="pushbtn" onclick="app.push.request()">🔔 Bildirimleri Aç</button>
+    <button class="btn pri" onclick="app.ai.analyze()">🤖 AI Analiz</button>
+    <button class="btn" onclick="app.push.test()">🔔 Test</button>
+  </div>
+</div>
+
+<div id="lay">
+  <div id="sb">
+    <div class="slbl">Forex</div><div id="lf"></div>
+    <div class="div"></div>
+    <div class="slbl">Emtia</div><div id="lc"></div>
+  </div>
+
+  <div id="ctr">
+    <div class="chhd">
+      <div>
+        <div class="chnm" id="cnm">—</div>
+        <div class="chpr ne" id="cpr">--</div>
+        <div class="chmt"><span id="cch"></span><span id="ctf" style="margin-left:9px;color:var(--mu)">· 1S</span></div>
+      </div>
+      <div class="tfr">
+        <button class="tf" onclick="app.selectTF(this,'5min')">5d</button>
+        <button class="tf" onclick="app.selectTF(this,'15min')">15d</button>
+        <button class="tf" onclick="app.selectTF(this,'30min')">30d</button>
+        <button class="tf on" onclick="app.selectTF(this,'1h')">1S</button>
+        <button class="tf" onclick="app.selectTF(this,'4h')">4S</button>
+        <button class="tf" onclick="app.selectTF(this,'1day')">1G</button>
+      </div>
+    </div>
+
+    <div class="cw" style="height:215px"><div class="clbl">Mum Grafiği · Zoom: scroll · Pan: sürükle</div><div id="pc" style="height:192px"></div></div>
+    <div class="cw" style="height:112px"><div class="clbl">MACD (12,26,9) · Mavi=MACD · Sarı=Sinyal · Bar=Histogram</div><div id="mc" style="height:88px"></div></div>
+    <div class="cw" style="height:97px"><div class="clbl">RSI (14) · Kırmızı=70 · Yeşil=30</div><div id="rc" style="height:74px"></div></div>
+
+    <div class="ir">
+      <div class="ib"><div class="il">MACD</div><div class="iv ne" id="iv-macd">--</div><div class="ibar"><div class="ifill" id="ib-macd" style="width:50%;background:var(--g)"></div></div><div class="ino" id="in-macd">Yükleniyor...</div></div>
+      <div class="ib"><div class="il">RSI (14)</div><div class="iv ne" id="iv-rsi">--</div><div class="ibar"><div class="ifill" id="ib-rsi" style="width:50%;background:var(--g)"></div></div><div class="ino" id="in-rsi">Yükleniyor...</div></div>
+      <div class="ib"><div class="il">Sinyal</div><div class="iv ne" id="iv-sig">BEKLE</div><div class="ibar"><div class="ifill" id="ib-sig" style="width:20%;background:var(--mu)"></div></div><div class="ino" id="in-sig">Bekleniyor...</div></div>
+    </div>
+
+    <div class="sb2 wait" id="sigbox">
+      <div class="si" id="sico">⏳</div>
+      <div><div class="sm" id="smn">BACKEND BAĞLANIYOR</div><div class="sd" id="sdt">WebSocket bağlantısı kuruluyor...</div></div>
+      <div class="sa"><div class="sal">AI Kararı</div><div class="sav" id="sav">—</div><div style="font-size:10px;color:var(--mu);margin-top:2px" id="san">Beklemede</div></div>
+    </div>
+
+    <div class="mt">
+      <div class="mth"><div>İndikatör</div><div>5d</div><div>15d</div><div>30d</div><div>1S</div><div>4S</div><div>1G</div></div>
+      <div id="mtb"></div>
+    </div>
+
+    <div class="sbox">
+      <div class="stit">⏰ Bildirim Alarmları</div>
+      <div class="srow">
+        <input type="time" id="at" value="09:00">
+        <select id="aa" style="background:var(--bg3);border:1px solid var(--b2);color:var(--tx);border-radius:8px;padding:6px 10px;font-size:12px;outline:none">
+          <option>EUR/USD</option><option>GBP/USD</option><option>USD/JPY</option>
+          <option>AUD/USD</option><option>USD/CHF</option><option>XAU/USD</option>
+          <option>WTI</option><option>BRENT</option><option>XAG/USD</option>
+          <option>Tüm Varlıklar</option>
+        </select>
+        <select id="atp" style="background:var(--bg3);border:1px solid var(--b2);color:var(--tx);border-radius:8px;padding:6px 10px;font-size:12px;outline:none">
+          <option>AL + SAT</option><option>Yalnızca AL</option><option>Yalnızca SAT</option><option>Güçlü Sinyaller</option>
+        </select>
+        <button class="btn pri" onclick="app.alarms.add()">+ Ekle</button>
+      </div>
+      <div id="allist"></div>
+    </div>
+  </div>
+
+  <div id="rp">
+    <div class="rt">🤖 AI Analizi</div>
+    <div class="pbn" id="pbn"><span>🔔</span><div><strong>Push bildirimleri kapalı.</strong> Açmak için:</div><button class="btn" style="margin-left:auto;padding:4px 10px;font-size:11px" onclick="app.push.request()">Aç</button></div>
+    <div class="acard">
+      <div class="acard-h"><div class="acard-t"><div class="aibl"></div><span id="aitl">—</span></div><span style="font-size:10px;color:var(--mu);font-family:var(--mo)" id="aitm">—</span></div>
+      <div class="aitx" id="aitx">Backend bağlantısı bekleniyor...</div>
+      <div class="aisc"><div><div style="font-size:10px;color:var(--mu)">Güven Skoru</div><div class="sbar"><div class="sfill" id="asf" style="width:0%"></div></div></div><div class="sv ne" id="asv">—</div></div>
+    </div>
+    <div class="rt" style="margin-top:3px">📰 Piyasa Haberleri</div>
+    <div id="newsfeed"></div>
+    <div class="rt" style="margin-top:3px">🔔 Son Bildirimler</div>
+    <div id="recn"><div style="color:var(--mu);font-size:11px;padding:6px 0">Henüz bildirim yok</div></div>
+    <div style="background:var(--bg3);border:1px solid var(--b);border-radius:var(--rad);padding:9px 11px;margin-top:2px">
+      <div style="font-weight:600;font-size:12px;margin-bottom:4px">📱 PWA Kurulumu</div>
+      <div style="font-size:11px;color:var(--mu);line-height:1.65">
+        Push bildirim için:<br>
+        <strong style="color:var(--tx)">Chrome:</strong> Adres çubuğu → ⊕ ikonu<br>
+        <strong style="color:var(--tx)">Safari:</strong> Paylaş → Ana Ekrana Ekle
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tos"></div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════
+const CONFIG = {
+  WS_URL:   `ws://${location.host}`,
+  API_URL:  `${location.origin}/api`,
+  TFS: [
+    {k:'5min',l:'5d'},{k:'15min',l:'15d'},{k:'30min',l:'30d'},
+    {k:'1h',l:'1S'},{k:'4h',l:'4S'},{k:'1day',l:'1G'}
+  ],
+  RECONNECT_DELAY: 3000,
+  MAX_RECONNECTS:  10,
+};
+
+const $ = id => document.getElementById(id);
+const fp = (v, d) => v != null ? Number(v).toFixed(d) : '--';
+
+// ════════════════════════════════════════════════════════
+// WebSocketClient — OOP
+// ════════════════════════════════════════════════════════
+class WebSocketClient {
+  constructor(url) {
+    this.url         = url;
+    this.ws          = null;
+    this._reconnects = 0;
+    this._handlers   = new Map();
+    this._pingInterval = null;
+    this.connected   = false;
+  }
+
+  on(type, fn) {
+    if (!this._handlers.has(type)) this._handlers.set(type, []);
+    this._handlers.get(type).push(fn);
+  }
+
+  _emit(type, data) {
+    (this._handlers.get(type) || []).forEach(fn => fn(data));
+    (this._handlers.get('*') || []).forEach(fn => fn({ type, data }));
+  }
+
+  connect() {
+    if (this.ws?.readyState === WebSocket.OPEN) return;
+    this.ws = new WebSocket(this.url);
+
+    this.ws.onopen = () => {
+      this.connected   = true;
+      this._reconnects = 0;
+      this._emit('open', {});
+      this._startPing();
+    };
+
+    this.ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        this._emit(msg.type, msg);
+        this._emit('message', msg);
+      } catch {}
+    };
+
+    this.ws.onclose = () => {
+      this.connected = false;
+      this._stopPing();
+      this._emit('close', {});
+      if (this._reconnects < CONFIG.MAX_RECONNECTS) {
+        this._reconnects++;
+        setTimeout(() => this.connect(), CONFIG.RECONNECT_DELAY * Math.min(this._reconnects, 5));
+      }
+    };
+
+    this.ws.onerror = () => this._emit('error', {});
+  }
+
+  send(type, payload = {}) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type, ...payload }));
+    }
+  }
+
+  requestChart(symbol, tf) { this.send('get_chart', { symbol, tf }); }
+  requestSnapshot()        { this.send('get_snapshot'); }
+
+  _startPing() {
+    this._pingInterval = setInterval(() => this.send('ping'), 25000);
+  }
+  _stopPing() {
+    clearInterval(this._pingInterval);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// ChartManager — OOP
+// ════════════════════════════════════════════════════════
+class ChartManager {
+  constructor() {
+    this.PC = null; this.MC = null; this.RC = null;
+    this.Sprice = null; this.Smacd = null; this.Ssig = null;
+    this.Shist = null;  this.Srsi  = null;
+    this.Sr70 = null;   this.Sr30  = null; this.Sr50 = null;
+    this._built = false;
+  }
+
+  _opts(xvis = true) {
+    return {
+      layout: { background: { type:'solid', color:'#111318' }, textColor:'#6b7280' },
+      grid: { vertLines:{ color:'rgba(255,255,255,0.04)' }, horzLines:{ color:'rgba(255,255,255,0.04)' } },
+      crosshair: { mode: 1 },
+      rightPriceScale: { borderColor:'rgba(255,255,255,0.07)' },
+      timeScale: { borderColor:'rgba(255,255,255,0.07)', timeVisible: xvis, secondsVisible: false },
+      handleScroll: true, handleScale: true,
+    };
+  }
+
+  _mk(id, h, xvis = true) {
+    const el = $(id); el.innerHTML = '';
+    const c = LightweightCharts.createChart(el, { ...this._opts(xvis), width: el.clientWidth, height: h });
+    new ResizeObserver(() => c.applyOptions({ width: el.clientWidth })).observe(el);
+    return c;
+  }
+
+  build() {
+    if (this.PC) try { this.PC.remove(); } catch {}
+    if (this.MC) try { this.MC.remove(); } catch {}
+    if (this.RC) try { this.RC.remove(); } catch {}
+
+    this.PC = this._mk('pc', 192, true);
+    this.Sprice = this.PC.addCandlestickSeries({
+      upColor:'#10d88e', downColor:'#f5475b',
+      borderUpColor:'#10d88e', borderDownColor:'#f5475b',
+      wickUpColor:'#10d88e', wickDownColor:'#f5475b',
+    });
+
+    this.MC = this._mk('mc', 88, false);
+    this.Shist = this.MC.addHistogramSeries({ priceLineVisible:false, lastValueVisible:false });
+    this.Smacd = this.MC.addLineSeries({ color:'#4f8ef7', lineWidth:1, priceLineVisible:false, lastValueVisible:false });
+    this.Ssig  = this.MC.addLineSeries({ color:'#f59e0b', lineWidth:1, priceLineVisible:false, lastValueVisible:false });
+
+    this.RC = this._mk('rc', 74, false);
+    this.Srsi = this.RC.addLineSeries({ color:'#a78bfa', lineWidth:1.5, priceLineVisible:false, lastValueVisible:false });
+    this.Sr70 = this.RC.addLineSeries({ color:'rgba(245,71,91,.4)',  lineWidth:1, lineStyle: LightweightCharts.LineStyle.Dashed, priceLineVisible:false, lastValueVisible:false });
+    this.Sr30 = this.RC.addLineSeries({ color:'rgba(16,216,142,.4)', lineWidth:1, lineStyle: LightweightCharts.LineStyle.Dashed, priceLineVisible:false, lastValueVisible:false });
+    this.Sr50 = this.RC.addLineSeries({ color:'rgba(107,114,128,.25)', lineWidth:1, lineStyle: LightweightCharts.LineStyle.Dotted, priceLineVisible:false, lastValueVisible:false });
+    this.RC.priceScale('right').applyOptions({ autoScale:false, minimum:0, maximum:100 });
+
+    this._built = true;
+  }
+
+  update(chartData) {
+    if (!this._built || !chartData?.candles?.length) return;
+    const { candles, indicators } = chartData;
+
+    // Deduplicate
+    const seen = new Set();
+    const uCandles = candles.filter(c => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
+
+    this.Sprice.setData(uCandles);
+    this.PC.timeScale().fitContent();
+
+    if (indicators) {
+      const histData = indicators.histogram.map((v, i) => ({
+        time: uCandles[i]?.time, value: v,
+        color: v >= 0 ? 'rgba(16,216,142,.7)' : 'rgba(245,71,91,.7)'
+      })).filter(x => x.time);
+      const macdData = indicators.macd.map((v, i) => ({ time: uCandles[i]?.time, value: v })).filter(x => x.time);
+      const sigData  = indicators.signal.map((v, i) => ({ time: uCandles[i]?.time, value: v })).filter(x => x.time);
+      const rsiData  = indicators.rsi.map((v, i) => v != null ? { time: uCandles[i]?.time, value: v } : null).filter(Boolean);
+
+      this.Shist.setData(histData);
+      this.Smacd.setData(macdData);
+      this.Ssig.setData(sigData);
+      this.MC.timeScale().fitContent();
+
+      if (rsiData.length) {
+        this.Srsi.setData(rsiData);
+        const t0 = rsiData[0].time, t1 = rsiData[rsiData.length-1].time;
+        this.Sr70.setData([{time:t0,value:70},{time:t1,value:70}]);
+        this.Sr30.setData([{time:t0,value:30},{time:t1,value:30}]);
+        this.Sr50.setData([{time:t0,value:50},{time:t1,value:50}]);
+      }
+      this.RC.timeScale().fitContent();
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// UIController — OOP
+// ════════════════════════════════════════════════════════
+class UIController {
+  updateWS(connected, msg) {
+    $('wsdot').className = 'dot ' + (connected ? 'g' : 'r');
+    $('wstx').textContent = msg;
+  }
+
+  updateSidebar(assets, currentSymbol) {
+    ['forex','commodity'].forEach(type => {
+      const el = $(type === 'forex' ? 'lf' : 'lc');
+      el.innerHTML = '';
+      assets.filter(a => a.type === type).forEach(a => {
+        const up = (a.changePct || 0) >= 0;
+        const bestSig = Object.values(a.timeframes || {}).reduce((b, tf) => {
+          const sg = tf?.signal;
+          return (!b || (sg?.strength || 0) > b.strength) ? sg || b : b;
+        }, null) || { type:'wait', label:'—', strength:0 };
+
+        const tfBadges = CONFIG.TFS.slice(0,4).map(tf => {
+          const sg = a.timeframes?.[tf.k]?.signal;
+          return `<span class="bx ${sg?.type || 'wait'}">${tf.l}</span>`;
+        }).join('');
+
+        const div = document.createElement('div');
+        div.className = 'ac' + (a.symbol === currentSymbol ? ' on' : '');
+        div.id = 'ac-' + a.symbol.replace('/','_');
+        div.onclick = () => window.app.selectAsset(a.symbol);
+        div.innerHTML = `
+          <div class="act">
+            <div class="acl">
+              <div class="aco" style="background:${a.color}22;color:${a.color}">${a.icon}</div>
+              <div><div class="acs">${a.symbol}</div><div class="acf">${a.symbol}</div></div>
+            </div>
+            <div>
+              <div class="acp">${fp(a.price, a.decimals)}</div>
+              <div class="acc ${up?'up':'dn'}">${up?'+':''}${fp(a.change,a.decimals>3?4:2)} (${up?'+':''}${fp(a.changePct,2)}%)</div>
+            </div>
+          </div>
+          <div class="acb">
+            <div style="display:flex;gap:3px">${tfBadges}</div>
+            <span class="bx ${bestSig.type}">${bestSig.label}</span>
+          </div>`;
+        el.appendChild(div);
+      });
+    });
+  }
+
+  updateCenter(asset, tf) {
+    if (!asset) return;
+    const tfData = asset.timeframes?.[tf];
+    const sig    = tfData?.signal;
+    const ind    = tfData?.indicators;
+    const tfLabel = CONFIG.TFS.find(t => t.k === tf)?.l || tf;
+
+    $('cnm').textContent  = asset.symbol;
+    $('cpr').textContent  = fp(asset.price, asset.decimals);
+    $('cpr').className    = 'chpr ' + ((asset.changePct || 0) >= 0 ? 'up' : 'dn');
+    $('cch').textContent  = asset.change != null
+      ? `${asset.change >= 0 ? '+' : ''}${fp(asset.change, asset.decimals > 3 ? 4 : 2)} (${asset.changePct >= 0 ? '+' : ''}${fp(asset.changePct, 2)}%)`
+      : '';
+    $('cch').className    = (asset.changePct || 0) >= 0 ? 'up' : 'dn';
+    $('ctf').textContent  = `· ${tfLabel}`;
+
+    if (ind) {
+      const rsiV  = ind.rsi;
+      const macdV = ind.macd;
+      const histV = ind.histogram;
+
+      if (macdV != null) {
+        $('iv-macd').textContent = (macdV >= 0 ? '+' : '') + macdV.toFixed(6);
+        $('iv-macd').className   = 'iv ' + (macdV >= 0 ? 'up' : 'dn');
+        $('ib-macd').style.cssText = `width:${Math.min(100, 50 + Math.abs(macdV) * 5000)}%;background:${macdV >= 0 ? 'var(--g)' : 'var(--r)'}`;
+        $('in-macd').textContent = histV > 0 ? 'Histogram pozitif ↑' : 'Histogram negatif ↓';
+      }
+      if (rsiV != null) {
+        $('iv-rsi').textContent  = rsiV.toFixed(1);
+        $('iv-rsi').className    = 'iv ' + (rsiV > 50 ? 'up' : 'dn');
+        $('ib-rsi').style.cssText = `width:${rsiV}%;background:${rsiV > 70 ? 'var(--r)' : rsiV > 50 ? 'var(--g)' : 'var(--a)'}`;
+        $('in-rsi').textContent  = rsiV > 70 ? 'Aşırı Alım (>70)' : rsiV < 30 ? 'Aşırı Satım (<30)' : `Nötr (${rsiV.toFixed(0)})`;
+      }
+    }
+
+    if (sig) {
+      const ICO = {sbuy:'📈',ssell:'📉',buy:'📊',sell:'📉',wait:'⏳'};
+      $('iv-sig').textContent  = sig.label;
+      $('iv-sig').className    = 'iv ' + (sig.type.includes('buy') ? 'up' : sig.type.includes('sell') ? 'dn' : 'ne');
+      $('ib-sig').style.cssText = `width:${sig.strength}%;background:${sig.type.includes('buy') ? 'var(--g)' : sig.type.includes('sell') ? 'var(--r)' : 'var(--mu)'}`;
+      $('in-sig').textContent  = `Güç: ${sig.strength}% · RSI ${ind?.rsi != null ? ind.rsi.toFixed(0) : '--'}`;
+
+      $('sigbox').className  = 'sb2 ' + sig.type;
+      $('sico').textContent  = ICO[sig.type] || '⏳';
+      $('smn').textContent   = sig.label;
+      $('sdt').innerHTML     = `MACD ${sig.type !== 'wait' ? 'sinyali verdi' : 'beklemede'} · RSI = ${ind?.rsi?.toFixed(1) || '--'}<br>Güç: ${sig.strength}% · ${tfLabel} zaman dilimi`;
+    }
+
+    this.updateMTF(asset);
+  }
+
+  updateMTF(asset) {
+    const rows = [
+      { l:'MACD',   fn:(ind) => { const h = ind?.histogram; return h != null ? `<span class="bx ${h > 0 ? 'buy':'sell'}">${h > 0 ? '▲':'▼'}</span>` : '—'; }},
+      { l:'RSI',    fn:(ind) => { const r = ind?.rsi; if (r == null) return '—'; const c = r>70?'sell':r>50?'buy':r<30?'sbuy':'wait'; return `<span class="bx ${c}">${r.toFixed(0)}</span>`; }},
+      { l:'Sinyal', fn:(_,sg) => sg ? `<span class="bx ${sg.type}">${sg.label.split(' ')[0]}</span>` : '—' },
+    ];
+    $('mtb').innerHTML = rows.map(row => `
+      <div class="mtr">
+        <div class="mti">${row.l}</div>
+        ${CONFIG.TFS.map(tf => {
+          const d = asset.timeframes?.[tf.k];
+          return `<div>${d ? row.fn(d.indicators, d.signal) : '<span class="bx wait">—</span>'}</div>`;
+        }).join('')}
+      </div>`).join('');
+  }
+
+  updateAIPanel(symbol, text, score) {
+    $('aitl').textContent = symbol + ' Analizi';
+    $('aitx').innerHTML   = text;
+    $('aitm').textContent = 'az önce';
+    if (score != null) {
+      $('asv').textContent  = score + '%';
+      $('asv').className    = 'sv ' + (score > 60 ? 'up' : 'dn');
+      $('asf').style.width  = score + '%';
+    }
+  }
+
+  addRecent(sym, sig, tf, ai) {
+    const el = $('recn');
+    const tfLabel = CONFIG.TFS.find(t => t.k === tf)?.l || tf;
+    const time = new Date().toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' });
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:6px 0;border-bottom:1px solid var(--b);font-size:11px';
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+        <span style="font-weight:700">${sym}</span>
+        <span class="bx ${sig.type}">${sig.label}</span>
+        <span class="bx bl">${tfLabel}</span>
+        <span style="margin-left:auto;font-family:var(--mo);color:var(--mu)">${time}</span>
+      </div>
+      <div style="color:var(--mu)">AI: ${ai.verdict} — ${ai.shortNote}</div>`;
+    if (el.firstChild && el.firstChild.textContent?.includes('Henüz')) el.innerHTML = '';
+    el.insertBefore(div, el.firstChild);
+    while (el.children.length > 6) el.removeChild(el.lastChild);
+  }
+
+  renderNews() {
+    const items = [
+      {s:'Reuters',   t:'14:32',i:'h',h:'<strong>Brent petrol $114</strong> — İran Hürmüz Boğazı gerilimi tırmanıyor'},
+      {s:'Bloomberg', t:'13:58',i:'h',h:'<strong>Fed tutanakları:</strong> Erken faiz indirimine karşı sinyal'},
+      {s:'FXStreet',  t:'13:20',i:'m',h:'<strong>EUR/USD</strong> 1.0870 direnci test ediliyor'},
+      {s:'CNBC',      t:'12:45',i:'m',h:'<strong>Altın (XAU/USD)</strong> 2334$ desteğini koruyor'},
+      {s:'EIA',       t:'12:00',i:'l',h:'ABD ham petrol stokları beklenti üzerinde artış gösterdi'},
+    ];
+    const ic={h:'imh',m:'imm',l:'iml'}, it={h:'YÜKSEK',m:'ORTA',l:'DÜŞÜK'};
+    $('newsfeed').innerHTML = items.map(n =>
+      `<div class="ni"><div class="nt"><span class="ns">${n.s}</span><span class="ntm">${n.t}</span><span class="nim ${ic[n.i]}">${it[n.i]}</span></div><div class="nh">${n.h}</div></div>`
+    ).join('');
+  }
+
+  toast(type, title, body) {
+    const ico = {buy:'📈',sell:'📉',warn:'⚠️',info:'ℹ️',ok:'✅'};
+    const t = document.createElement('div');
+    t.className = `tos ${type}`;
+    t.innerHTML = `<div class="ti2">${ico[type]||'🔔'}</div><div style="flex:1"><div class="tt">${title}</div><div class="tb">${body.replace(/\n/g,'<br>')}</div></div><button class="tc" onclick="this.closest('.tos').remove()">✕</button>`;
+    $('tos').appendChild(t);
+    setTimeout(() => t.remove?.(), 7000);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// AlarmManager — OOP
+// ════════════════════════════════════════════════════════
+class AlarmManager {
+  constructor(ui, push) {
+    this._alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
+    this.ui = ui; this.push = push;
+    this.render();
+  }
+
+  add() {
+    this._alarms.push({
+      id: Date.now(), time: $('at').value || '09:00',
+      asset: $('aa').value, type: $('atp').value, on: true
+    });
+    this._save(); this.render();
+    this.ui.toast('info', '⏰ Alarm Eklendi', `${$('aa').value} · ${$('at').value}`);
+  }
+
+  toggle(id) {
+    const a = this._alarms.find(x => x.id === id);
+    if (a) { a.on = !a.on; this._save(); this.render(); }
+  }
+
+  delete(id) {
+    this._alarms = this._alarms.filter(x => x.id !== id);
+    this._save(); this.render();
+  }
+
+  check(assets, signals) {
+    const hhmm = new Date().toTimeString().slice(0, 5);
+    this._alarms.filter(a => a.on && a.time === hhmm).forEach(al => {
+      const targets = al.asset === 'Tüm Varlıklar'
+        ? assets : assets.filter(x => x.symbol === al.asset);
+      targets.forEach(asset => {
+        const sig = signals[asset.symbol];
+        if (sig && sig.type !== 'wait') {
+          this.push.sendSignal(asset, '1h', sig, { verdict:'Alarm', shortNote:'Zamanlanmış alarm' });
+        }
+      });
+    });
+  }
+
+  matchesAlarm(symbol, sigType) {
+    return this._alarms.some(al => al.on &&
+      (al.asset === symbol || al.asset === 'Tüm Varlıklar') &&
+      (al.type === 'AL + SAT' ||
+       (al.type === 'Yalnızca AL'    && sigType.includes('buy'))  ||
+       (al.type === 'Yalnızca SAT'   && sigType.includes('sell')) ||
+       (al.type === 'Güçlü Sinyaller' && sigType.startsWith('s')))
+    );
+  }
+
+  _save() { localStorage.setItem('alarms', JSON.stringify(this._alarms)); }
+
+  render() {
+    $('allist').innerHTML = this._alarms.map(a => `
+      <div class="alitem">
+        <div class="aldot" style="background:${a.on ? 'var(--g)' : 'var(--mu)'}"></div>
+        <div class="alinf"><div class="alp">${a.asset}</div><div class="aldc">${a.type}</div></div>
+        <div class="altm">${a.time}</div>
+        <button class="altog ${a.on ? '' : 'off'}" onclick="app.alarms.toggle(${a.id})"></button>
+        <button class="dbtn" onclick="app.alarms.delete(${a.id})">✕</button>
+      </div>`).join('') || '<div style="font-size:11px;color:var(--mu);padding:6px 0">Alarm yok</div>';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// PushManager — OOP
+// ════════════════════════════════════════════════════════
+class PushManager {
+  constructor(ui) {
+    this.ui      = ui;
+    this.enabled = false;
+    this.swReg   = null;
+    this.notified = new Set();
+    this._initSW();
+  }
+
+  async _initSW() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      this.swReg = await navigator.serviceWorker.register('/sw.js');
+      if (Notification.permission === 'granted') { this.enabled = true; this._updateUI(); }
+    } catch {}
+  }
+
+  async request() {
+    if (!('Notification' in window)) { this.ui.toast('warn','Desteklenmiyor','Tarayıcı bildirimleri desteklemiyor.'); return; }
+    const p = await Notification.requestPermission();
+    if (p === 'granted') {
+      this.enabled = true; this._updateUI();
+      this.ui.toast('ok','✅ Bildirimler Açıldı','Sinyal gelince push alacaksınız.');
+      new Notification('TradeSignal AI', { body:'Bildirimler aktif! 📈', icon:'/icons/icon-192.png' });
+    } else {
+      this.ui.toast('warn','İzin Reddedildi','Tarayıcı ayarlarından bildirimlere izin verin.');
+    }
+  }
+
+  sendSignal(asset, tf, sig, ai) {
+    const title = `${sig.label} — ${asset.symbol} [${CONFIG.TFS.find(t=>t.k===tf)?.l}]`;
+    const body  = `Fiyat: ${fp(asset.price, asset.decimals)} · RSI: ${sig.rsi?.toFixed(1) || '--'} · AI: ${ai.verdict}`;
+    const type  = sig.type.includes('buy') ? 'buy' : 'sell';
+    this._send(title, body, type, ai.approved !== false);
+    this.ui.addRecent(asset.symbol, sig, tf, ai);
+  }
+
+  _send(title, body, type, important) {
+    this.ui.toast(type, title, body);
+    if (this.enabled && Notification.permission === 'granted') {
+      try {
+        if (this.swReg?.active) {
+          this.swReg.active.postMessage({ type:'SHOW_NOTIFICATION', title, body, important });
+        } else {
+          new Notification(title, { body, icon:'/icons/icon-192.png' });
+        }
+      } catch { new Notification(title, { body, icon:'/icons/icon-192.png' }); }
+    }
+  }
+
+  test() {
+    const asset = window.app.currentAsset();
+    if (!asset) { this.ui.toast('info','Test','Varlık seçin'); return; }
+    const sig = asset.timeframes?.['1h']?.signal || { type:'sbuy', label:'TEST', strength:80, rsi:55 };
+    this.sendSignal(asset, '1h', sig, { verdict:'Test', shortNote:'Manuel test' });
+  }
+
+  checkSignal(asset, tf, sig, alarms) {
+    const nk = `${asset.symbol}_${tf}_${sig.type}_${Math.floor(Date.now()/300000)}`;
+    if (this.notified.has(nk)) return;
+    if (!alarms.matchesAlarm(asset.symbol, sig.type)) return;
+    if (sig.strength < 75) return;
+    this.notified.add(nk);
+    this._runAIAndNotify(asset, tf, sig);
+  }
+
+  async _runAIAndNotify(asset, tf, sig) {
+    const ai = await this._aiCheck(asset, tf, sig);
+    if (ai.approved) {
+      this.sendSignal(asset, tf, sig, ai);
+    } else {
+      this._send(`⚠️ ${sig.label} — ${asset.symbol}`,
+        `RSI: ${sig.rsi?.toFixed(1)} · AI: ${ai.verdict} — ${ai.shortNote}\n[AI onaylamadı]`,
+        'warn', false);
+      this.ui.addRecent(asset.symbol, sig, tf, ai);
+    }
+  }
+
+  async _aiCheck(asset, tf, sig) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model:'claude-sonnet-4-20250514', max_tokens:150,
+          messages:[{ role:'user', content:
+            `Sadece JSON: {"approved":bool,"score":0-100,"verdict":"Onaylandı/Dikkatli/Bloklandı","shortNote":"max 5 kelime","reason":"max 10 kelime"}\nVarlık:${asset.symbol} TF:${tf} Sinyal:${sig.label}(${sig.strength}%) RSI:${sig.rsi?.toFixed(1)} Fiyat:${fp(asset.changePct,2)}%`
+          }]
+        })
+      });
+      const d = await res.json();
+      return JSON.parse((d.content?.[0]?.text || '{}').replace(/```json|```/g,'').trim());
+    } catch {
+      return { approved: sig.strength >= 75, score: sig.strength, verdict: sig.strength >= 75 ? 'Onaylandı' : 'Dikkatli', shortNote: 'Kural bazlı', reason: 'AI yanıt yok' };
+    }
+  }
+
+  _updateUI() {
+    $('pushbtn').textContent = this.enabled ? '🔔 Bildirimler Açık' : '🔔 Bildirimleri Aç';
+    if (this.enabled) { $('pushbtn').classList.add('pri'); $('pbn').classList.add('hi'); }
+    else $('pushbtn').classList.remove('pri');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// AIService — OOP
+// ════════════════════════════════════════════════════════
+class AIService {
+  constructor(ui) { this.ui = ui; }
+
+  async analyze(asset, tf) {
+    if (!asset) return;
+    const sig = asset.timeframes?.[tf]?.signal;
+    const ind = asset.timeframes?.[tf]?.indicators;
+    const tfLabel = CONFIG.TFS.find(t => t.k === tf)?.l || tf;
+    this.ui.updateAIPanel(asset.symbol, '<span class="spin"></span> Analiz ediliyor...', null);
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model:'claude-sonnet-4-20250514', max_tokens:500,
+          messages:[{ role:'user', content:
+            `Forex analist. ${asset.symbol} için Türkçe kısa analiz:\nZaman: ${tfLabel} | Fiyat: ${fp(asset.price,asset.decimals)} (${fp(asset.changePct,2)}%)\nSinyal: ${sig?.label||'—'} (${sig?.strength||0}%) | RSI: ${ind?.rsi?.toFixed(1)||'?'} | MACD: ${sig?.type !== 'wait' ? 'aktif' : 'nötr'}\n3-4 cümle: görünüm, güven/risk, push bildirim verilmeli mi? Professional Türkçe.`
+          }]
+        })
+      });
+      const d = await res.json();
+      const text = (d.content?.[0]?.text || 'Yanıt alınamadı.').replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+      this.ui.updateAIPanel(asset.symbol, text, sig?.strength || 0);
+    } catch {
+      this.ui.updateAIPanel(asset.symbol, 'AI bağlantısı yok. Teknik analiz devam ediyor.', 0);
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// App — Main controller
+// ════════════════════════════════════════════════════════
+class App {
+  constructor() {
+    this.ui      = new UIController();
+    this.charts  = new ChartManager();
+    this.push    = new PushManager(this.ui);
+    this.aiSvc   = new AIService(this.ui);
+    this.alarms  = null; // init after push
+
+    this._assets  = {};   // symbol → asset data
+    this._curSym  = 'EUR/USD';
+    this._curTF   = '1h';
+    this._ws      = null;
+    this._wsReady = false;
+  }
+
+  currentAsset() { return this._assets[this._curSym] || null; }
+
+  async init() {
+    this.alarms = new AlarmManager(this.ui, this.push);
+    this.ui.renderNews();
+
+    // Wait for LightweightCharts
+    await new Promise(r => {
+      if (typeof LightweightCharts !== 'undefined') return r();
+      const t = setInterval(() => { if (typeof LightweightCharts !== 'undefined') { clearInterval(t); r(); } }, 100);
+    });
+    this.charts.build();
+
+    // Connect WebSocket
+    this._ws = new WebSocketClient(CONFIG.WS_URL);
+    this._ws.on('open',     () => { this._wsReady = true;  this.ui.updateWS(true, 'Backend bağlı — Twelve Data'); });
+    this._ws.on('close',    () => { this._wsReady = false; this.ui.updateWS(false, 'Yeniden bağlanıyor...'); });
+    this._ws.on('error',    () => this.ui.updateWS(false, 'Bağlantı hatası'));
+    this._ws.on('snapshot', (msg) => this._onSnapshot(msg.data));
+    this._ws.on('chart',    (msg) => this._onChart(msg.data));
+    this._ws.on('update',   (msg) => this._onUpdate(msg.data));
+    this._ws.on('price',    (msg) => this._onPrice(msg.data));
+    this._ws.on('signal',   (msg) => this._onSignal(msg.data));
+    this._ws.connect();
+
+    // Clock
+    setInterval(() => {
+      $('clk').textContent = new Date().toLocaleTimeString('tr-TR');
+      const assets = Object.values(this._assets);
+      const signals = {};
+      assets.forEach(a => { signals[a.symbol] = a.timeframes?.['1h']?.signal; });
+      this.alarms.check(assets, signals);
+    }, 1000);
+  }
+
+  _onSnapshot(data) {
+    if (!Array.isArray(data)) return;
+    data.forEach(a => { if (a) this._assets[a.symbol] = a; });
+    this.ui.updateSidebar(Object.values(this._assets), this._curSym);
+    const cur = this._assets[this._curSym];
+    if (cur) { this.ui.updateCenter(cur, this._curTF); }
+    // Request chart data
+    this._ws.requestChart(this._curSym, this._curTF);
+    this.aiSvc.analyze(cur, this._curTF);
+  }
+
+  _onChart(data) {
+    if (!data || data.symbol !== this._curSym || data.tf !== this._curTF) return;
+    this.charts.update(data);
+  }
+
+  _onUpdate(data) {
+    if (!data?.symbol) return;
+    const asset = this._assets[data.symbol];
+    if (!asset) return;
+
+    // Update asset timeframe data
+    if (!asset.timeframes) asset.timeframes = {};
+    if (!asset.timeframes[data.tf]) asset.timeframes[data.tf] = {};
+    asset.timeframes[data.tf].signal     = data.signal;
+    asset.timeframes[data.tf].indicators = data.indicators;
+    if (data.price) { asset.price = data.price; asset.change = data.change; asset.changePct = data.changePct; }
+
+    this.ui.updateSidebar(Object.values(this._assets), this._curSym);
+    if (data.symbol === this._curSym) {
+      this.ui.updateCenter(asset, this._curTF);
+      if (data.tf === this._curTF) {
+        this._ws.requestChart(this._curSym, this._curTF);
+      }
+    }
+
+    // Check if should notify
+    if (data.signal) {
+      this.push.checkSignal(asset, data.tf, data.signal, this.alarms);
+    }
+  }
+
+  _onPrice(data) {
+    if (!data?.symbol) return;
+    const asset = this._assets[data.symbol];
+    if (!asset) return;
+    asset.price     = data.price;
+    asset.change    = data.change;
+    asset.changePct = data.changePct;
+    asset.open      = data.open;
+    asset.high      = data.high;
+    asset.low       = data.low;
+
+    this.ui.updateSidebar(Object.values(this._assets), this._curSym);
+    if (data.symbol === this._curSym) {
+      $('cpr').textContent = fp(asset.price, asset.decimals);
+      $('cpr').className   = 'chpr ' + (asset.changePct >= 0 ? 'up' : 'dn');
+      $('cch').textContent = `${asset.change >= 0 ? '+' : ''}${fp(asset.change, asset.decimals > 3 ? 4 : 2)} (${asset.changePct >= 0 ? '+' : ''}${fp(asset.changePct, 2)}%)`;
+    }
+  }
+
+  _onSignal(data) {
+    if (!data?.signal) return;
+    const asset = this._assets[data.symbol];
+    if (!asset) return;
+    if (data.signal.strength >= 75) {
+      this.push.checkSignal(asset, data.tf, data.signal, this.alarms);
+    }
+  }
+
+  selectAsset(symbol) {
+    this._curSym = symbol;
+    document.querySelectorAll('.ac').forEach(c => c.classList.remove('on'));
+    const el = $('ac-' + symbol.replace('/','_'));
+    if (el) el.classList.add('on');
+    this.charts.build();
+    const asset = this._assets[symbol];
+    if (asset) {
+      this.ui.updateCenter(asset, this._curTF);
+      this._ws.requestChart(symbol, this._curTF);
+      this.aiSvc.analyze(asset, this._curTF);
+    }
+  }
+
+  selectTF(btn, key) {
+    document.querySelectorAll('.tf').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    this._curTF = key;
+    $('ctf').textContent = `· ${CONFIG.TFS.find(t => t.k === key)?.l || key}`;
+    const asset = this._assets[this._curSym];
+    if (asset) this.ui.updateCenter(asset, key);
+    if (this._wsReady) this._ws.requestChart(this._curSym, key);
+  }
+
+  // For AI button in topbar
+  ai = { analyze: () => this.aiSvc.analyze(this.currentAsset(), this._curTF) };
+}
+
+// ════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════
+const app = new App();
+window.app = app;
+window.addEventListener('DOMContentLoaded', () => app.init());
+</script>
+</body>
+</html>
