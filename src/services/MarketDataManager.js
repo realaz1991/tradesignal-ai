@@ -2,7 +2,7 @@
 'use strict';
 
 const { AssetRegistry } = require('../models/Asset');
-const TwelveDataService = require('./TwelveDataService');
+const FinnhubService = require('./FinnhubService');
 const IndicatorService  = require('./IndicatorService');
 
 const TIMEFRAMES = ['5min', '15min', '30min', '1h', '4h', '1day'];
@@ -10,7 +10,7 @@ const TIMEFRAMES = ['5min', '15min', '30min', '1h', '4h', '1day'];
 class MarketDataManager {
   constructor(apiKey) {
     this.registry  = new AssetRegistry();
-    this.tdService = new TwelveDataService(apiKey);
+    this.tdService = new FinnhubService(apiKey);
 
     // symbol → tf → { candles, indicators, signal }
     this._marketData = new Map();
@@ -95,7 +95,7 @@ class MarketDataManager {
     if (this._refreshing.has(key)) return;
     this._refreshing.add(key);
     try {
-      const data = await this.tdService.getMarketData(asset.tdSymbol, tf);
+      const data = await this.tdService.getMarketData(asset.symbol, tf);
 
       // Update asset live price from 1h (balanced frequency)
       if (tf === '1h') {
@@ -130,7 +130,7 @@ class MarketDataManager {
   // Fetch live price only (lightweight, fast)
   async _fetchLivePrice(asset) {
     try {
-      const quote = await this.tdService.getQuote(asset.tdSymbol);
+      const quote = await this.tdService.getQuote(asset.symbol);
       asset.price     = quote.price;
       asset.open      = quote.open;
       asset.high      = quote.high;
@@ -159,6 +159,28 @@ class MarketDataManager {
   // ── Start ─────────────────────────────────────────────────────────
   async start() {
     console.log('[MDM] Starting initial data load...');
+
+    // Finnhub WebSocket başlat — canlı fiyatlar push olarak gelir
+    this.tdService.connectWebSocket((symbol, price, ts) => {
+      const asset = this.registry.get(symbol);
+      if (!asset) return;
+      const prev = asset.price;
+      asset.price     = price;
+      asset.updatedAt = ts;
+      if (prev) {
+        asset.change    = parseFloat((price - prev).toFixed(8));
+        asset.changePct = parseFloat(((price - prev) / prev * 100).toFixed(4));
+      }
+      // Canlı fiyat güncellemesini yayınla
+      this.emit('price', {
+        type:      'price',
+        symbol:    asset.symbol,
+        price:     asset.price,
+        change:    asset.change,
+        changePct: asset.changePct,
+        updatedAt: asset.updatedAt,
+      });
+    });
 
     const assets = this.registry.getAll();
 

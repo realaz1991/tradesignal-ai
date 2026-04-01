@@ -244,7 +244,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-
 // CONFIG
 // ════════════════════════════════════════════════════════
 const CONFIG = {
-  WS_URL:   `ws://${location.host}`,
+  WS_URL: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`,
   API_URL:  `${location.origin}/api`,
   TFS: [
     {k:'5min',l:'5d'},{k:'15min',l:'15d'},{k:'30min',l:'30d'},
@@ -743,19 +743,14 @@ class PushManager {
 
   async _aiCheck(asset, tf, sig) {
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          model:'claude-sonnet-4-20250514', max_tokens:150,
-          messages:[{ role:'user', content:
-            `Sadece JSON: {"approved":bool,"score":0-100,"verdict":"Onaylandı/Dikkatli/Bloklandı","shortNote":"max 5 kelime","reason":"max 10 kelime"}\nVarlık:${asset.symbol} TF:${tf} Sinyal:${sig.label}(${sig.strength}%) RSI:${sig.rsi?.toFixed(1)} Fiyat:${fp(asset.changePct,2)}%`
-          }]
-        })
+      const res = await fetch('/api/ai/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol: asset.symbol, tf, signal: sig, rsi: sig.rsi?.toFixed(1), changePct: fp(asset.changePct, 2) })
       });
-      const d = await res.json();
-      return JSON.parse((d.content?.[0]?.text || '{}').replace(/```json|```/g,'').trim());
+      return await res.json();
     } catch {
-      return { approved: sig.strength >= 75, score: sig.strength, verdict: sig.strength >= 75 ? 'Onaylandı' : 'Dikkatli', shortNote: 'Kural bazlı', reason: 'AI yanıt yok' };
+      return { approved: sig.strength >= 75, score: sig.strength, verdict: sig.strength >= 75 ? 'Onaylandı' : 'Dikkatli', shortNote: 'Kural bazlı', reason: 'Backend yok' };
     }
   }
 
@@ -779,20 +774,22 @@ class AIService {
     const tfLabel = CONFIG.TFS.find(t => t.k === tf)?.l || tf;
     this.ui.updateAIPanel(asset.symbol, '<span class="spin"></span> Analiz ediliyor...', null);
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST', headers:{'Content-Type':'application/json'},
+      const res = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model:'claude-sonnet-4-20250514', max_tokens:500,
-          messages:[{ role:'user', content:
-            `Forex analist. ${asset.symbol} için Türkçe kısa analiz:\nZaman: ${tfLabel} | Fiyat: ${fp(asset.price,asset.decimals)} (${fp(asset.changePct,2)}%)\nSinyal: ${sig?.label||'—'} (${sig?.strength||0}%) | RSI: ${ind?.rsi?.toFixed(1)||'?'} | MACD: ${sig?.type !== 'wait' ? 'aktif' : 'nötr'}\n3-4 cümle: görünüm, güven/risk, push bildirim verilmeli mi? Professional Türkçe.`
-          }]
+          symbol: asset.symbol, tf,
+          price: fp(asset.price, asset.decimals),
+          changePct: fp(asset.changePct, 2),
+          signal: sig,
+          rsi: ind?.rsi?.toFixed(1) || '?'
         })
       });
       const d = await res.json();
-      const text = (d.content?.[0]?.text || 'Yanıt alınamadı.').replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-      this.ui.updateAIPanel(asset.symbol, text, sig?.strength || 0);
+      const text = (d.text || 'Yanıt alınamadı.').replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+      this.ui.updateAIPanel(asset.symbol, text, d.score || 0);
     } catch {
-      this.ui.updateAIPanel(asset.symbol, 'AI bağlantısı yok. Teknik analiz devam ediyor.', 0);
+      this.ui.updateAIPanel(asset.symbol, 'Backend bağlantı hatası.', 0);
     }
   }
 }
