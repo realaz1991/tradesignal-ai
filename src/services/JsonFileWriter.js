@@ -33,8 +33,13 @@ class JsonFileWriter {
     }
   }
 
+  // Sayıyı belirli ondalık basamağa yuvarla, null ise null döndür
+  _round(v, dec = 5) {
+    if (v == null || isNaN(v)) return null;
+    return parseFloat(Number(v).toFixed(dec));
+  }
+
   _build() {
-    const assets  = this.mdm.getFullSnapshot();
     const now     = new Date();
     const hour    = now.getUTCHours();
     const session = hour >= 13 ? 'New York' : hour >= 8 ? 'London' : 'Asian';
@@ -42,96 +47,104 @@ class JsonFileWriter {
     const instruments = {};
     const top_signals = [];
 
-    assets.forEach(a => {
-      if (!a) return;
+    // _data map'inden direkt oku — snapshot üzerinden değil
+    const assets = this.mdm.registry.getAll();
 
-      // Her zaman dilimi için RSI + MACD + Sinyal
+    assets.forEach(asset => {
+      const sym    = asset.symbol;
+      const tfMap  = this.mdm._data.get(sym) || new Map();
       const timeframes = {};
-      Object.entries(a.timeframes || {}).forEach(([tf, d]) => {
+
+      tfMap.forEach((d, tf) => {
         if (!d) return;
 
-        const rsi  = d.indicators?.rsi        ?? null;
-        const macd = d.indicators?.macd       ?? null;
-        const sig  = d.indicators?.signal     ?? null;
-        const hist = d.indicators?.histogram  ?? null;
-        const stype = d.signal?.type  || 'wait';
-        const slbl  = d.signal?.label || 'BEKLE';
-        const sstr  = d.signal?.strength || 0;
+        // ── IndicatorResult objesinden son değerleri al ──
+        const ind  = d.indicators;   // IndicatorResult instance
+        const sig  = d.signal;       // Signal instance
+
+        // ind.latestRSI, ind.latestMACD vb. getter'ları kullan
+        const rsiV  = ind ? this._round(ind.latestRSI,  2) : null;
+        const macdV = ind ? this._round(ind.latestMACD, 6) : null;
+        const sigV  = ind ? this._round(ind.latestSig,  6) : null;
+        const histV = ind ? this._round(ind.latestHist, 6) : null;
+
+        const stype = sig?.type     || 'wait';
+        const slbl  = sig?.label    || 'BEKLE';
+        const sstr  = sig?.strength || 0;
+        const srsi  = sig?.rsi      || rsiV;
 
         timeframes[tf] = {
-          // ── İndikatörler ──
-          rsi:       rsi  !== null ? parseFloat(rsi.toFixed(2))  : null,
-          macd:      macd !== null ? parseFloat(macd.toFixed(6)) : null,
-          macd_signal: sig  !== null ? parseFloat(sig.toFixed(6))  : null,
-          histogram: hist !== null ? parseFloat(hist.toFixed(6)) : null,
+          // İndikatör değerleri
+          rsi:          rsiV,
+          macd:         macdV,
+          macd_signal:  sigV,
+          histogram:    histV,
 
-          // ── RSI yorumu ──
-          rsi_zone: rsi === null ? null
-            : rsi > 70 ? 'Aşırı Alım (>70)'
-            : rsi < 30 ? 'Aşırı Satım (<30)'
-            : rsi > 50 ? 'Yükseliş Bölgesi (50-70)'
+          // RSI yorumu
+          rsi_zone: rsiV === null ? null
+            : rsiV > 70 ? 'Aşırı Alım (>70)'
+            : rsiV < 30 ? 'Aşırı Satım (<30)'
+            : rsiV > 50 ? 'Yükseliş Bölgesi (50-70)'
             : 'Düşüş Bölgesi (30-50)',
 
-          // ── MACD yorumu ──
-          macd_trend: hist === null ? null
-            : hist > 0 ? 'Pozitif (yükseliş momentum)'
+          // MACD yorumu
+          macd_trend: histV === null ? null
+            : histV > 0 ? 'Pozitif (yükseliş momentum)'
             : 'Negatif (düşüş momentum)',
 
-          // ── Sinyal ──
+          // Sinyal
           signal:          slbl,
           signal_type:     stype,
           signal_strength: sstr,
-          signal_desc: stype === 'sbuy'  ? 'MACD AL kesişimi + RSI 50-70 — Güçlü alım'
-                     : stype === 'buy'   ? 'MACD pozitif + RSI 50 üzeri — Alım'
-                     : stype === 'ssell' ? 'MACD SAT kesişimi + RSI 30-50 — Güçlü satım'
-                     : stype === 'sell'  ? 'MACD negatif + RSI 50 altı — Satım'
-                     : 'Net sinyal yok — Bekle',
+          signal_desc:
+            stype === 'sbuy'  ? 'MACD AL kesişimi + RSI 50-70 — Güçlü AL'
+          : stype === 'buy'   ? 'MACD pozitif + RSI 50 üzeri — AL'
+          : stype === 'ssell' ? 'MACD SAT kesişimi + RSI 30-50 — Güçlü SAT'
+          : stype === 'sell'  ? 'MACD negatif + RSI 50 altı — SAT'
+          : 'Net sinyal yok — BEKLE',
         };
 
-        // Güçlü sinyalleri üst listeye ekle
+        // Güçlü sinyalleri listeye ekle
         if (stype !== 'wait' && sstr >= 75) {
           top_signals.push({
-            symbol:    a.symbol,
-            price:     a.price,
+            symbol:    sym,
+            price:     asset.price,
             timeframe: tf,
             signal:    slbl,
             type:      stype,
             strength:  sstr,
-            rsi:       rsi  !== null ? parseFloat(rsi.toFixed(2))  : null,
-            macd:      macd !== null ? parseFloat(macd.toFixed(6)) : null,
-            histogram: hist !== null ? parseFloat(hist.toFixed(6)) : null,
+            rsi:       rsiV,
+            macd:      macdV,
+            histogram: histV,
           });
         }
       });
 
-      instruments[a.symbol] = {
-        // ── Fiyat bilgisi ──
-        price:      a.price      ?? null,
-        change:     a.change     ?? 0,
-        change_pct: parseFloat((a.changePct || 0).toFixed(3)),
-        direction:  (a.changePct || 0) >= 0 ? 'up' : 'down',
-        type:       a.type,
-
-        // ── Tüm TF'lerde RSI + MACD + Sinyal ──
+      instruments[sym] = {
+        price:      asset.price      ?? null,
+        change:     this._round(asset.change,    5),
+        change_pct: this._round(asset.changePct, 3),
+        direction:  (asset.changePct || 0) >= 0 ? 'up' : 'down',
+        type:       asset.type,
         timeframes,
       };
     });
 
     return {
       meta: {
-        title:        'TradeSignal AI — Gerçek Zamanlı Forex & Emtia',
-        source:       'scanme.az/forex',
-        url:          'https://violet-hippopotamus-438533.hostingersite.com/data.json',
-        updated:      now.toISOString(),
-        next_update:  new Date(now.getTime() + 60000).toISOString(),
+        title:          'TradeSignal AI — Gerçek Zamanlı Forex & Emtia',
+        source:         'scanme.az/forex',
+        url:            'https://violet-hippopotamus-438533.hostingersite.com/data.json',
+        updated:        now.toISOString(),
+        next_update:    new Date(now.getTime() + 60000).toISOString(),
         market_session: session + ' Session',
-        indicators:   'MACD(12,26,9) + RSI(14)',
-        timeframes:   ['5min','15min','30min','1h','4h','1day'],
+        indicators:     'MACD(12,26,9) + RSI(14)',
+        timeframes:     ['5min','15min','30min','1h','4h','1day'],
       },
 
       summary: assets
         .filter(a => a?.price)
-        .map(a => `${a.symbol}: ${a.price} (${(a.changePct||0)>=0?'+':''}${(a.changePct||0).toFixed(2)}%)`)
+        .map(a => `${a.symbol}: ${a.price} (${(a.changePct||0) >= 0 ? '+' : ''}${(a.changePct||0).toFixed(2)}%)`)
         .join(' | '),
 
       instruments,
