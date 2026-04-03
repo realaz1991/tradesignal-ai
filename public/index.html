@@ -121,8 +121,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-
 .sav{font-size:11px;font-weight:600;padding:3px 8px;border-radius:5px;display:inline-block;margin-top:2px}
 .aok{background:var(--gb);color:var(--g)}.awk{background:var(--ab);color:var(--a)}.ano{background:var(--rb);color:var(--r)}
 .mt{background:var(--bg2);border:1px solid var(--b);border-radius:var(--radl);overflow:hidden}
-.mth{display:grid;grid-template-columns:72px repeat(6,1fr);background:var(--bg3);padding:7px 12px;font-size:10px;font-weight:600;color:var(--mu);letter-spacing:.05em;text-transform:uppercase}
-.mtr{display:grid;grid-template-columns:72px repeat(6,1fr);padding:8px 12px;border-top:1px solid var(--b);align-items:center;font-size:11px}
+.mth{display:grid;grid-template-columns:120px repeat(4,1fr);background:var(--bg3);padding:7px 12px;font-size:10px;font-weight:600;color:var(--mu);letter-spacing:.05em;text-transform:uppercase}
+.mtr{display:grid;grid-template-columns:120px repeat(4,1fr);padding:8px 12px;border-top:1px solid var(--b);align-items:center;font-size:11px}
 .mti{font-weight:600;font-size:11px}
 .sbox{background:var(--bg2);border:1px solid var(--b);border-radius:var(--radl);padding:13px 15px}
 .stit{font-size:13px;font-weight:600;margin-bottom:11px}
@@ -201,10 +201,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-
       <div class="tfr">
         <button class="tf" onclick="app.selectTF(this,'5min')">5d</button>
         <button class="tf" onclick="app.selectTF(this,'15min')">15d</button>
-        <button class="tf" onclick="app.selectTF(this,'30min')">30d</button>
         <button class="tf on" onclick="app.selectTF(this,'1h')">1S</button>
         <button class="tf" onclick="app.selectTF(this,'4h')">4S</button>
-        <button class="tf" onclick="app.selectTF(this,'1day')">1G</button>
       </div>
     </div>
 
@@ -225,7 +223,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-
     </div>
 
     <div class="mt">
-      <div class="mth"><div>İndikatör</div><div>5d</div><div>15d</div><div>30d</div><div>1S</div><div>4S</div><div>1G</div></div>
+      <div class="mth"><div>İndikatör</div><div>5d</div><div>15d</div><div>1S</div><div>4S</div></div>
       <div id="mtb"></div>
     </div>
 
@@ -283,8 +281,7 @@ const CONFIG = {
   API_URL: `${location.origin}/api`,
   POLL_INTERVAL: 5000,
   TFS: [
-    {k:'5min',l:'5d'},{k:'15min',l:'15d'},{k:'30min',l:'30d'},
-    {k:'1h',l:'1S'},{k:'4h',l:'4S'},{k:'1day',l:'1G'}
+    {k:'5min',l:'5d'},{k:'15min',l:'15d'},{k:'1h',l:'1S'},{k:'4h',l:'4S'}
   ],
 };
 

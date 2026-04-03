@@ -5,7 +5,7 @@ const { AssetRegistry } = require('../models/Asset');
 const FinnhubService    = require('./FinnhubService');
 const IndicatorService  = require('./IndicatorService');
 
-const TIMEFRAMES = ['5min','15min','30min','1h','4h','1day'];
+const TIMEFRAMES = ['5min','15min','1h','4h'];
 
 // Refresh süreleri
 const REFRESH_MS = {
@@ -152,33 +152,23 @@ class MarketDataManager {
       });
     });
 
-    // İlk yükleme — sadece 1h (en önemli TF, en az istek)
-    // Diğer TF'ler zaman içinde yüklenir
-    for (const asset of assets) {
-      await this._fetchOne(asset, '1h');
-      await new Promise(r => setTimeout(r, 800)); // rate limit için bekle
-    }
-
-    // Kalan TF'leri arka planda yükle (5min ve 15min atla — çok istek yer)
-    const importantTFs = ['30min','4h','1day'];
-    for (const tf of importantTFs) {
+    // İlk yükleme — 4 TF: 1h → 4h → 15min → 5min
+    for (const tf of ['1h','4h','15min','5min']) {
       for (const asset of assets) {
         await this._fetchOne(asset, tf);
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 800));
       }
-    }
-
-    // 5min ve 15min'i en son yükle
-    for (const asset of assets) {
-      await this._fetchOne(asset, '5min');
-      await new Promise(r => setTimeout(r, 1000));
-      await this._fetchOne(asset, '15min');
-      await new Promise(r => setTimeout(r, 1000));
     }
 
     console.log('[MDM] Initial load complete. Starting refresh loops...');
 
-    // Refresh döngüleri — TF sürelerine göre
+    // Refresh döngüleri
+    const REFRESH_MS = {
+      '5min':  5  * 60 * 1000,
+      '15min': 15 * 60 * 1000,
+      '1h':    60 * 60 * 1000,
+      '4h':    4  * 60 * 60 * 1000,
+    };
     TIMEFRAMES.forEach(tf => {
       const id = setInterval(async () => {
         for (const asset of assets) {
