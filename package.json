@@ -1,17 +1,20 @@
 {
-  "name": "tradesignal-backend",
+  "name": "tradesignal-ai",
   "version": "1.0.0",
-  "description": "TradeSignal AI — OOP Backend",
+  "description": "TradeSignal AI — Forex & Commodity Signal Platform",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "build": "echo 'No build step'"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "ws": "^8.16.0",
-    "node-fetch": "^3.3.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.1"
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2",
+    "ws": "^8.16.0"
   }
 }

@@ -7,7 +7,43 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="TradeSignal">
 <link rel="manifest" href="/manifest.json">
-<title>TradeSignal AI</title>
+<title>TradeSignal AI — Gerçek Zamanlı Forex & Emtia Sinyalleri</title>
+
+<!-- SEO & AI Meta Tags -->
+<meta name="description" content="Gerçek zamanlı EUR/USD, GBP/USD, XAU/USD, Brent petrol fiyatları ve MACD+RSI sinyalleri. AI destekli forex analiz platformu.">
+<meta name="keywords" content="EUR/USD fiyat, XAU/USD altın fiyat, Brent petrol, forex sinyal, MACD RSI, canlı kur">
+<meta name="robots" content="index, follow">
+<meta name="author" content="TradeSignal AI">
+
+<!-- Open Graph (ChatGPT, sosyal medya önizleme) -->
+<meta property="og:title" content="TradeSignal AI — Canlı Forex Fiyatları">
+<meta property="og:description" content="EUR/USD, GBP/USD, XAU/USD ve daha fazlası için gerçek zamanlı fiyatlar ve alım-satım sinyalleri.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://scanme.az/forex">
+
+<!-- AI Crawlers için yapılandırılmış veri (JSON-LD) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "DataFeed",
+  "name": "TradeSignal AI — Forex & Commodity Prices",
+  "description": "Real-time forex and commodity prices with MACD+RSI trading signals",
+  "url": "https://violet-hippopotamus-438533.hostingersite.com/api/market-data",
+  "encodingFormat": "application/json",
+  "provider": {
+    "@type": "Organization",
+    "name": "TradeSignal AI",
+    "url": "https://scanme.az/forex"
+  },
+  "about": [
+    {"@type": "Thing", "name": "EUR/USD"},
+    {"@type": "Thing", "name": "GBP/USD"},
+    {"@type": "Thing", "name": "XAU/USD"},
+    {"@type": "Thing", "name": "Brent Crude Oil"},
+    {"@type": "Thing", "name": "WTI Crude Oil"}
+  ]
+}
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap');
 :root{
@@ -244,30 +280,29 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-
 // CONFIG
 // ════════════════════════════════════════════════════════
 const CONFIG = {
-  WS_URL: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`,
-  API_URL:  `${location.origin}/api`,
+  API_URL: `${location.origin}/api`,
+  POLL_INTERVAL: 5000,
   TFS: [
     {k:'5min',l:'5d'},{k:'15min',l:'15d'},{k:'30min',l:'30d'},
     {k:'1h',l:'1S'},{k:'4h',l:'4S'},{k:'1day',l:'1G'}
   ],
-  RECONNECT_DELAY: 3000,
-  MAX_RECONNECTS:  10,
 };
 
 const $ = id => document.getElementById(id);
 const fp = (v, d) => v != null ? Number(v).toFixed(d) : '--';
 
 // ════════════════════════════════════════════════════════
-// WebSocketClient — OOP
+// PollingClient — OOP
 // ════════════════════════════════════════════════════════
-class WebSocketClient {
-  constructor(url) {
-    this.url         = url;
-    this.ws          = null;
-    this._reconnects = 0;
-    this._handlers   = new Map();
-    this._pingInterval = null;
-    this.connected   = false;
+// ════════════════════════════════════════════════════════
+// PollingClient — WebSocket yerine HTTP polling (Hostinger uyumlu)
+// ════════════════════════════════════════════════════════
+class PollingClient {
+  constructor() {
+    this._handlers = new Map();
+    this._timer    = null;
+    this._running  = false;
+    this.connected = false;
   }
 
   on(type, fn) {
@@ -277,61 +312,68 @@ class WebSocketClient {
 
   _emit(type, data) {
     (this._handlers.get(type) || []).forEach(fn => fn(data));
-    (this._handlers.get('*') || []).forEach(fn => fn({ type, data }));
   }
 
   connect() {
-    if (this.ws?.readyState === WebSocket.OPEN) return;
-    this.ws = new WebSocket(this.url);
-
-    this.ws.onopen = () => {
-      this.connected   = true;
-      this._reconnects = 0;
-      this._emit('open', {});
-      this._startPing();
-    };
-
-    this.ws.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        this._emit(msg.type, msg);
-        this._emit('message', msg);
-      } catch {}
-    };
-
-    this.ws.onclose = () => {
-      this.connected = false;
-      this._stopPing();
-      this._emit('close', {});
-      if (this._reconnects < CONFIG.MAX_RECONNECTS) {
-        this._reconnects++;
-        setTimeout(() => this.connect(), CONFIG.RECONNECT_DELAY * Math.min(this._reconnects, 5));
-      }
-    };
-
-    this.ws.onerror = () => this._emit('error', {});
+    this._running = true;
+    this._poll();
+    this._timer = setInterval(() => this._poll(), CONFIG.POLL_INTERVAL);
   }
 
-  send(type, payload = {}) {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type, ...payload }));
+  async _poll() {
+    try {
+      // 1. Assets (fiyat + sinyal)
+      const r1 = await fetch(`${CONFIG.API_URL}/assets`);
+      const d1 = await r1.json();
+      if (d1.ok) {
+        this.connected = true;
+        this._emit('snapshot', { data: d1.data });
+        this._emit('open', {});
+        // Fiyat güncellemeleri
+        d1.data.forEach(a => {
+          if (!a) return;
+          this._emit('price', { data: {
+            type: 'price', symbol: a.symbol,
+            price: a.price, change: a.change,
+            changePct: a.changePct, updatedAt: a.updatedAt
+          }});
+          // Sinyal güncellemeleri
+          if (a.timeframes) {
+            Object.entries(a.timeframes).forEach(([tf, tfData]) => {
+              if (tfData?.signal) {
+                this._emit('update', { data: {
+                  type: 'update', symbol: a.symbol, tf,
+                  signal: tfData.signal,
+                  indicators: tfData.indicators,
+                  price: a.price, change: a.change, changePct: a.changePct
+                }});
+              }
+            });
+          }
+        });
+      }
+    } catch(e) {
+      this.connected = false;
+      this._emit('close', {});
     }
   }
 
-  requestChart(symbol, tf) { this.send('get_chart', { symbol, tf }); }
-  requestSnapshot()        { this.send('get_snapshot'); }
-
-  _startPing() {
-    this._pingInterval = setInterval(() => this.send('ping'), 25000);
+  requestChart(symbol, tf) {
+    fetch(`${CONFIG.API_URL}/chart/${encodeURIComponent(symbol)}/${tf}`)
+      .then(r => r.json())
+      .then(d => { if (d.ok) this._emit('chart', { data: d.data }); })
+      .catch(() => {});
   }
-  _stopPing() {
-    clearInterval(this._pingInterval);
+
+  requestSnapshot() { this._poll(); }
+
+  send(type, payload = {}) {
+    if (type === 'get_chart' && payload.symbol && payload.tf) {
+      this.requestChart(payload.symbol, payload.tf);
+    }
   }
 }
 
-// ════════════════════════════════════════════════════════
-// ChartManager — OOP
-// ════════════════════════════════════════════════════════
 class ChartManager {
   constructor() {
     this.PC = null; this.MC = null; this.RC = null;
@@ -826,9 +868,9 @@ class App {
     this.charts.build();
 
     // Connect WebSocket
-    this._ws = new WebSocketClient(CONFIG.WS_URL);
-    this._ws.on('open',     () => { this._wsReady = true;  this.ui.updateWS(true, 'Backend bağlı — Twelve Data'); });
-    this._ws.on('close',    () => { this._wsReady = false; this.ui.updateWS(false, 'Yeniden bağlanıyor...'); });
+    this._ws = new PollingClient();
+    this._ws.on('open',     () => { this._wsReady = true;  this.ui.updateWS(true, 'Backend bağlı — Canlı'); });
+    this._ws.on('close',    () => { this._wsReady = false; this.ui.updateWS(false, 'Bağlantı kesildi...'); });
     this._ws.on('error',    () => this.ui.updateWS(false, 'Bağlantı hatası'));
     this._ws.on('snapshot', (msg) => this._onSnapshot(msg.data));
     this._ws.on('chart',    (msg) => this._onChart(msg.data));
@@ -938,7 +980,7 @@ class App {
     $('ctf').textContent = `· ${CONFIG.TFS.find(t => t.k === key)?.l || key}`;
     const asset = this._assets[this._curSym];
     if (asset) this.ui.updateCenter(asset, key);
-    if (this._wsReady) this._ws.requestChart(this._curSym, key);
+    this._ws.requestChart(this._curSym, key);
   }
 
   // For AI button in topbar

@@ -2,64 +2,61 @@
 'use strict';
 
 const { AssetRegistry } = require('../models/Asset');
-const FinnhubService = require('./FinnhubService');
+const FinnhubService    = require('./FinnhubService');
 const IndicatorService  = require('./IndicatorService');
 
-const TIMEFRAMES = ['5min', '15min', '30min', '1h', '4h', '1day'];
+const TIMEFRAMES = ['5min','15min','30min','1h','4h','1day'];
+
+// Refresh süreleri
+const REFRESH_MS = {
+  '5min':  5  * 60 * 1000,
+  '15min': 15 * 60 * 1000,
+  '30min': 30 * 60 * 1000,
+  '1h':    60 * 60 * 1000,
+  '4h':    4  * 60 * 60 * 1000,
+  '1day':  24 * 60 * 60 * 1000,
+};
 
 class MarketDataManager {
   constructor(apiKey) {
     this.registry  = new AssetRegistry();
     this.tdService = new FinnhubService(apiKey);
-
-    // symbol → tf → { candles, indicators, signal }
-    this._marketData = new Map();
-
-    // Refresh intervals
+    this._data     = new Map(); // symbol → tf → data
     this._intervals = new Map();
-    this._refreshing = new Set();
-
-    // Event listeners
-    this._listeners = new Map(); // event → [fn]
-
+    this._listeners = new Map();
+    this._loading   = new Set();
     console.log('[MarketDataManager] Initialized with', this.registry.getAll().length, 'assets');
   }
 
-  // ── Event Bus ────────────────────────────────────────────────────
   on(event, fn) {
     if (!this._listeners.has(event)) this._listeners.set(event, []);
     this._listeners.get(event).push(fn);
   }
-
   emit(event, data) {
     (this._listeners.get(event) || []).forEach(fn => fn(data));
   }
 
-  // ── Data Access ──────────────────────────────────────────────────
-  getMarketData(symbol, tf) {
-    return this._marketData.get(symbol)?.get(tf) || null;
-  }
-
+  getMarketData(symbol, tf)  { return this._data.get(symbol)?.get(tf) || null; }
   getAllSignals(symbol) {
-    const tfMap = this._marketData.get(symbol);
-    if (!tfMap) return {};
-    const result = {};
-    tfMap.forEach((data, tf) => { result[tf] = data.signal?.toJSON(); });
-    return result;
+    const m = this._data.get(symbol);
+    if (!m) return {};
+    const r = {};
+    m.forEach((d, tf) => { r[tf] = d.signal?.toJSON(); });
+    return r;
   }
 
   getAssetSnapshot(symbol) {
     const asset = this.registry.get(symbol);
     if (!asset) return null;
-    const tfMap = this._marketData.get(symbol) || new Map();
+    const tfMap = this._data.get(symbol) || new Map();
     const timeframes = {};
     TIMEFRAMES.forEach(tf => {
       const d = tfMap.get(tf);
       if (!d) return;
       timeframes[tf] = {
-        signal:     d.signal?.toJSON(),
-        indicators: d.indicators?.toLatestJSON(),
-        lastCandle: d.candles?.[d.candles.length - 1]?.toJSON(),
+        signal:      d.signal?.toJSON(),
+        indicators:  d.indicators?.toLatestJSON(),
+        lastCandle:  d.candles?.[d.candles.length-1]?.toJSON(),
         candleCount: d.candles?.length,
       };
     });
@@ -70,15 +67,13 @@ class MarketDataManager {
     return this.registry.getAll().map(a => this.getAssetSnapshot(a.symbol));
   }
 
-  // ── Candle data for chart (latest N candles) ─────────────────────
   getChartData(symbol, tf, limit = 120) {
     const d = this.getMarketData(symbol, tf);
     if (!d?.candles) return null;
     const candles = d.candles.slice(-limit).map(c => c.toJSON());
     const ind = d.indicators;
     return {
-      symbol, tf,
-      candles,
+      symbol, tf, candles,
       indicators: ind ? {
         rsi:       ind.rsi.slice(-limit),
         macd:      ind.macd.slice(-limit),
@@ -89,45 +84,34 @@ class MarketDataManager {
     };
   }
 
-  // ── Fetch & store ────────────────────────────────────────────────
-  async _fetchAssetTF(asset, tf) {
+  async _fetchOne(asset, tf) {
     const key = `${asset.symbol}_${tf}`;
-    if (this._refreshing.has(key)) return;
-    this._refreshing.add(key);
+    if (this._loading.has(key)) return;
+    this._loading.add(key);
     try {
       const data = await this.tdService.getMarketData(asset.symbol, tf);
-
-      // Update asset live price from 1h (balanced frequency)
-      if (tf === '1h') {
-        asset.updatePrice(data.price, data.prevClose);
-      }
-
-      // Store
-      if (!this._marketData.has(asset.symbol)) this._marketData.set(asset.symbol, new Map());
-      this._marketData.get(asset.symbol).set(tf, data);
-
-      // Emit update
+      if (tf === '1h') asset.updatePrice(data.price, data.prevClose);
+      if (!this._data.has(asset.symbol)) this._data.set(asset.symbol, new Map());
+      this._data.get(asset.symbol).set(tf, data);
       this.emit('update', {
-        type:   'candles',
-        symbol: asset.symbol,
-        tf,
-        signal: data.signal.toJSON(),
+        type: 'candles', symbol: asset.symbol, tf,
+        signal:     data.signal.toJSON(),
         indicators: data.indicators.toLatestJSON(),
-        price:  asset.price,
-        change: asset.change,
-        changePct: asset.changePct,
+        price:      asset.price,
+        change:     asset.change,
+        changePct:  asset.changePct,
       });
-
       console.log(`[MDM] ${asset.symbol} ${tf} — ${data.signal.label} RSI:${data.signal.rsi?.toFixed(1)}`);
-    } catch (e) {
-      console.warn(`[MDM] Error ${asset.symbol} ${tf}: ${e.message}`);
-      this.emit('error', { symbol: asset.symbol, tf, error: e.message });
+    } catch(e) {
+      // Rate limit veya API hatası — sessizce geç
+      if (!e.message.includes('run out') && !e.message.includes('429')) {
+        console.warn(`[MDM] Error ${asset.symbol} ${tf}: ${e.message}`);
+      }
     } finally {
-      this._refreshing.delete(key);
+      this._loading.delete(key);
     }
   }
 
-  // Fetch live price only (lightweight, fast)
   async _fetchLivePrice(asset) {
     try {
       const quote = await this.tdService.getQuote(asset.symbol);
@@ -139,107 +123,92 @@ class MarketDataManager {
       asset.change    = quote.change;
       asset.changePct = quote.changePct;
       asset.updatedAt = Date.now();
-
       this.emit('price', {
-        type:      'price',
-        symbol:    asset.symbol,
-        price:     asset.price,
-        open:      asset.open,
-        high:      asset.high,
-        low:       asset.low,
-        change:    asset.change,
-        changePct: asset.changePct,
-        updatedAt: asset.updatedAt,
+        type: 'price', symbol: asset.symbol,
+        price: asset.price, change: asset.change,
+        changePct: asset.changePct, updatedAt: asset.updatedAt,
       });
-    } catch (e) {
-      // Silently ignore price fetch errors (non-critical)
-    }
+    } catch {}
   }
 
-  // ── Start ─────────────────────────────────────────────────────────
   async start() {
     console.log('[MDM] Starting initial data load...');
+    const assets = this.registry.getAll();
 
-    // Finnhub WebSocket başlat — canlı fiyatlar push olarak gelir
+    // Finnhub WebSocket başlat
     this.tdService.connectWebSocket((symbol, price, ts) => {
       const asset = this.registry.get(symbol);
       if (!asset) return;
-      const prev = asset.price;
-      asset.price     = price;
-      asset.updatedAt = ts;
+      const prev  = asset.price;
+      asset.price = price; asset.updatedAt = ts;
       if (prev) {
         asset.change    = parseFloat((price - prev).toFixed(8));
         asset.changePct = parseFloat(((price - prev) / prev * 100).toFixed(4));
       }
-      // Canlı fiyat güncellemesini yayınla
       this.emit('price', {
-        type:      'price',
-        symbol:    asset.symbol,
-        price:     asset.price,
-        change:    asset.change,
-        changePct: asset.changePct,
-        updatedAt: asset.updatedAt,
+        type: 'price', symbol: asset.symbol,
+        price: asset.price, change: asset.change,
+        changePct: asset.changePct, updatedAt: asset.updatedAt,
       });
     });
 
-    const assets = this.registry.getAll();
-
-    // Phase 1: Load all timeframes for all assets (staggered)
+    // İlk yükleme — sadece 1h (en önemli TF, en az istek)
+    // Diğer TF'ler zaman içinde yüklenir
     for (const asset of assets) {
-      for (const tf of TIMEFRAMES) {
-        await this._fetchAssetTF(asset, tf);
-        // Small delay to respect rate limits
-        await new Promise(r => setTimeout(r, 500));
+      await this._fetchOne(asset, '1h');
+      await new Promise(r => setTimeout(r, 800)); // rate limit için bekle
+    }
+
+    // Kalan TF'leri arka planda yükle (5min ve 15min atla — çok istek yer)
+    const importantTFs = ['30min','4h','1day'];
+    for (const tf of importantTFs) {
+      for (const asset of assets) {
+        await this._fetchOne(asset, tf);
+        await new Promise(r => setTimeout(r, 1000));
       }
+    }
+
+    // 5min ve 15min'i en son yükle
+    for (const asset of assets) {
+      await this._fetchOne(asset, '5min');
+      await new Promise(r => setTimeout(r, 1000));
+      await this._fetchOne(asset, '15min');
+      await new Promise(r => setTimeout(r, 1000));
     }
 
     console.log('[MDM] Initial load complete. Starting refresh loops...');
 
-    // Phase 2: Periodic refresh per TF
-    const refreshIntervals = {
-      '5min':  5  * 60 * 1000,
-      '15min': 15 * 60 * 1000,
-      '30min': 30 * 60 * 1000,
-      '1h':    60 * 60 * 1000,
-      '4h':    4  * 60 * 60 * 1000,
-      '1day':  24 * 60 * 60 * 1000,
-    };
-
+    // Refresh döngüleri — TF sürelerine göre
     TIMEFRAMES.forEach(tf => {
-      const interval = refreshIntervals[tf];
       const id = setInterval(async () => {
         for (const asset of assets) {
-          await this._fetchAssetTF(asset, tf);
-          await new Promise(r => setTimeout(r, 300));
+          await this._fetchOne(asset, tf);
+          await new Promise(r => setTimeout(r, 500));
         }
-      }, interval);
+      }, REFRESH_MS[tf]);
       this._intervals.set(tf, id);
     });
 
-    // Phase 3: Live price refresh every 15 seconds
+    // Fiyat refresh — 30sn (Finnhub WS olmadığında fallback)
     const priceId = setInterval(async () => {
       for (const asset of assets) {
         await this._fetchLivePrice(asset);
         await new Promise(r => setTimeout(r, 200));
       }
-    }, 15000);
+    }, 30000);
     this._intervals.set('price', priceId);
 
-    this.emit('ready', { message: 'MarketDataManager ready', assets: assets.length });
+    this.emit('ready', { message: 'MarketDataManager ready' });
     console.log('[MDM] All refresh loops active');
   }
 
   stop() {
-    this._intervals.forEach((id, key) => { clearInterval(id); console.log(`[MDM] Stopped ${key} interval`); });
+    this._intervals.forEach((id, k) => { clearInterval(id); console.log('[MDM] Stopped', k); });
     this._intervals.clear();
   }
 
   stats() {
-    return {
-      assets: this.registry.getAll().length,
-      loaded: this._marketData.size,
-      api:    this.tdService.stats(),
-    };
+    return { assets: this.registry.getAll().length, loaded: this._data.size, api: this.tdService.stats() };
   }
 }
 

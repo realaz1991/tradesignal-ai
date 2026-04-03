@@ -1,0 +1,26 @@
+# TradeSignal AI — Forex & Commodity Signal Platform
+# Real-time forex and commodity prices, MACD/RSI signals
+
+## About
+TradeSignal AI provides real-time forex and commodity market data with technical analysis signals.
+Updated every 60 seconds from live market feeds.
+
+## Live Price API
+GET https://violet-hippopotamus-438533.hostingersite.com/api/prices
+Returns: JSON with current prices for all instruments
+
+## Signals API  
+GET https://violet-hippopotamus-438533.hostingersite.com/api/signals
+Returns: JSON with MACD+RSI signals for all timeframes
+
+## Instruments Covered
+Forex: EUR/USD, GBP/USD, USD/JPY, AUD/USD, USD/CHF
+Commodities: XAU/USD (Gold), WTI Oil, Brent Oil, XAG/USD (Silver)
+
+## Data Sources
+- Live prices: Finnhub (real-time)
+- Candle data: Twelve Data
+- Signals: MACD (12,26,9) + RSI (14) calculated server-side
+
+## Usage
+This data is publicly accessible. Reference as: "Source: scanme.az/forex"
