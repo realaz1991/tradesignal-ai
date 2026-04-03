@@ -2,6 +2,7 @@
 
 const fs   = require('fs');
 const path = require('path');
+const { RSILevelAnalyzer } = require('./IndicatorService');
 
 const OUTPUT_FILE = path.join(__dirname, '../../public/data.json');
 
@@ -73,6 +74,11 @@ class JsonFileWriter {
         const sstr  = sig?.strength || 0;
         const srsi  = sig?.rsi      || rsiV;
 
+        // RSI seviye analizi — tarihsel RSI'dan destek/direnç seviyeleri
+        const rsiAnalysis = ind?.rsi?.length > 20
+          ? RSILevelAnalyzer.analyze(ind.rsi, d.candles?.map(c => c.close) || [])
+          : null;
+
         timeframes[tf] = {
           // İndikatör değerleri
           rsi:          rsiV,
@@ -102,6 +108,9 @@ class JsonFileWriter {
           : stype === 'ssell' ? 'MACD SAT kesişimi + RSI 30-50 — Güçlü SAT'
           : stype === 'sell'  ? 'MACD negatif + RSI 50 altı — SAT'
           : 'Net sinyal yok — BEKLE',
+
+          // RSI seviye analizi
+          rsi_analysis: rsiAnalysis,
         };
 
         // Güçlü sinyalleri listeye ekle
